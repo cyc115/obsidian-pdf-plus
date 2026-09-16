@@ -11,6 +11,7 @@ import { patchPDFOutlineViewer } from 'patchers';
 import { PDFViewerBacklinkVisualizer } from 'backlink-visualizer';
 import { PDFPlusToolbar } from 'toolbar';
 import { BibliographyManager } from 'bib';
+import { SkimController } from 'skim/skim-controller';
 import { camelCaseToKebabCase, getCharactersWithBoundingBoxesInPDFCoords, getTextLayerInfo, hookInternalLinkMouseEventHandlers, isEmbed, isModifierName, isNonEmbedLike, selectDoubleClickedWord, selectTrippleClickedTextLayerNode, showChildElOnParentElHover } from 'utils';
 import { AnnotationElement, PDFOutlineViewer, PDFViewerComponent, PDFViewerChild, PDFSearchSettings, Rect, PDFAnnotationHighlight, PDFTextHighlight, PDFRectHighlight, ObsidianViewer, PDFPageView } from 'typings';
 import { SidebarView, SpreadMode } from 'pdfjs-enums';
@@ -133,6 +134,7 @@ const patchPDFViewerChild = (plugin: PDFPlus, child: PDFViewerChild) => {
                 this.palette = null;
                 this.rectHighlight = null;
                 this.bib = null;
+                this.skim = null;
 
                 if (!this.component) {
                     this.component = plugin.addChild(new Component());
@@ -383,6 +385,9 @@ const patchPDFViewerChild = (plugin: PDFPlus, child: PDFViewerChild) => {
 
                 this.bib?.unload();
                 this.bib = this.component.addChild(new BibliographyManager(plugin, this));
+
+                this.skim?.unload();
+                this.skim = this.component.addChild(new SkimController(plugin, this, plugin.skimCache));
 
                 // Register post-processors
 

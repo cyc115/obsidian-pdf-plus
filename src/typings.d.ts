@@ -15,6 +15,7 @@ import { ColorPalette } from 'color-palette';
 import { ScrollMode, SidebarView, SpreadMode } from 'pdfjs-enums';
 import { BibliographyManager } from 'bib';
 import { VimBindings } from 'vim/vim';
+import { SkimController } from 'skim/skim-controller';
 
 
 declare global {
@@ -133,6 +134,8 @@ interface PDFViewerChild {
     annotationHighlight: HTMLElement | null;
     /** The popup that shows up when you click an annotation in the PDF viewer. */
     activeAnnotationPopupEl: HTMLElement | null;
+    /** Skim highlights for this viewer. Added by this plugin. */
+    skim: SkimController | null;
     /** The PDF file that is currently loaded in the viewer. */
     file: TFile | null;
     /** Called right after the instantiation. Performs various initialization that is not file-specific. */

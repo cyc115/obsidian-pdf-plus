@@ -1,4 +1,6 @@
 import { Component, DropdownComponent, Events, HexString, IconName, MarkdownRenderer, Modifier, Notice, ObsidianProtocolData, Platform, PluginSettingTab, Setting, TextAreaComponent, TextComponent, debounce, setIcon, setTooltip } from 'obsidian';
+import { SkimProviderId } from 'skim/llm';
+import { addSkimSettings } from 'skim/settings-section';
 
 import PDFPlus from 'main';
 import { ExtendedPaneType } from 'lib/workspace-lib';
@@ -305,6 +307,14 @@ export interface PDFPlusSettings {
 	vimSmoothOutlineMode: boolean;
 	vimHintChars: string;
 	vimHintArgs: string;
+	skimProvider: SkimProviderId;
+	skimEndpoint: string;
+	skimModel: string;
+	skimApiKey: string;
+	skimDensityPercent: number;
+	skimPagesAhead: number;
+	skimOpacity: number;
+	skimReadingGoal: string;
 	PATH: string;
 	autoCheckForUpdates: boolean;
 	fixObsidianTextSelectionBug: boolean;
@@ -593,6 +603,14 @@ export const DEFAULT_SETTINGS: PDFPlusSettings = {
 	vimHintChars: 'hjklasdfgyuiopqwertnmzxcvb',
 	vimHintArgs: 'all',
 	PATH: '',
+	skimProvider: 'openrouter',
+	skimEndpoint: 'http://localhost:11434/v1/chat/completions',
+	skimModel: '~deepseek/deepseek-flash-latest',
+	skimApiKey: '',
+	skimDensityPercent: 18,
+	skimPagesAhead: 2,
+	skimOpacity: 0.25,
+	skimReadingGoal: '',
 	autoCheckForUpdates: true,
 	fixObsidianTextSelectionBug: true,
 };
@@ -1871,6 +1889,8 @@ export class PDFPlusSettingTab extends PluginSettingTab {
 		this.addIconSetting('calloutIcon', true)
 			.setName('Callout icon');
 
+
+		addSkimSettings(this);
 
 		this.addHeading('PDF toolbar', 'toolbar', 'lucide-palette');
 		this.addToggleSetting('hoverableDropdownMenuInToolbar')

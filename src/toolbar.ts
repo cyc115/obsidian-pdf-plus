@@ -233,6 +233,15 @@ export class PDFPlusToolbar extends PDFPlusComponent {
                                 });
                         })
                         .addItem((item) => {
+                            const skim = this.child.skim;
+                            item.setSection('appearance')
+                                .setIcon('lucide-highlighter')
+                                .setTitle('Skim highlights')
+                                .setChecked(!!skim?.isActive)
+                                .setDisabled(!skim)
+                                .onClick(() => skim?.toggle());
+                        })
+                        .addItem((item) => {
                             item.setSection('settings')
                                 .setIcon('lucide-settings')
                                 .setTitle('Customize defaults...')

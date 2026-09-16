@@ -4,17 +4,37 @@ import { PDFPlusLibSubmodule } from 'lib/submodule';
 import { PDFPageView, PDFViewerChild, Rect } from 'typings';
 
 
+/** The layer and element classes used by backlink highlights, and the default for `placeRectInPage`. */
+export const BACKLINK_LAYER = { layerClass: 'pdf-plus-backlink-highlight-layer', elClass: 'pdf-plus-backlink' };
+
+export interface OverlayLayerOptions {
+    /** Class of the layer element that holds the rectangles. */
+    layerClass?: string;
+    /** Class given to each rectangle element. */
+    elClass?: string;
+}
+
 /** Adding text highlight in PDF viewers without writing into files */
 export class ViewerHighlightLib extends PDFPlusLibSubmodule {
     getPDFPlusBacklinkHighlightLayer(pageView: PDFPageView): HTMLElement {
+        return this.getOverlayLayer(pageView, BACKLINK_LAYER.layerClass);
+    }
+
+    /**
+     * Get (or create) a layer stacked over a page, in page coordinates.
+     *
+     * Each feature gets its own layer class so that clearing one feature's rectangles
+     * cannot remove another's, and so that CSS and pointer behavior stay separate.
+     */
+    getOverlayLayer(pageView: PDFPageView, layerClass: string): HTMLElement {
         const pageDiv = pageView.div;
-        return pageDiv.querySelector<HTMLElement>('div.pdf-plus-backlink-highlight-layer')
-            ?? pageDiv.createDiv('pdf-plus-backlink-highlight-layer', (layerEl) => {
+        return pageDiv.querySelector<HTMLElement>(`div.${layerClass}`)
+            ?? pageDiv.createDiv(layerClass, (layerEl) => {
                 window.pdfjsLib.setLayerDimensions(layerEl, pageView.viewport);
             });
     }
 
-    placeRectInPage(rect: Rect, page: PDFPageView) {
+    placeRectInPage(rect: Rect, page: PDFPageView, options?: OverlayLayerOptions) {
         const viewBox = page.pdfPage.view;
         const pageX = viewBox[0];
         const pageY = viewBox[1];
@@ -22,8 +42,8 @@ export class ViewerHighlightLib extends PDFPlusLibSubmodule {
         const pageHeight = viewBox[3] - viewBox[1];
 
         const mirroredRect = window.pdfjsLib.Util.normalizeRect([rect[0], viewBox[3] - rect[1] + viewBox[1], rect[2], viewBox[3] - rect[3] + viewBox[1]]) as [number, number, number, number];
-        const layerEl = this.getPDFPlusBacklinkHighlightLayer(page);
-        const rectEl = layerEl.createDiv('pdf-plus-backlink');
+        const layerEl = this.getOverlayLayer(page, options?.layerClass ?? BACKLINK_LAYER.layerClass);
+        const rectEl = layerEl.createDiv(options?.elClass ?? BACKLINK_LAYER.elClass);
         rectEl.setCssStyles({
             left: `${100 * (mirroredRect[0] - pageX) / pageWidth}%`,
             top: `${100 * (mirroredRect[1] - pageY) / pageHeight}%`,

@@ -6,6 +6,7 @@ import { PDFPlusLib } from 'lib';
 import { AutoCopyMode } from 'auto-copy';
 import { ColorPalette } from 'color-palette';
 import { DomManager } from 'dom-manager';
+import { SkimCache } from 'skim/skim-cache';
 import { PDFCroppedEmbed } from 'pdf-cropped-embed';
 import { DEFAULT_SETTINGS, NamedTemplate, PDFPlusSettings, PDFPlusSettingTab } from 'settings';
 import { subpathToParams, OverloadParameters, focusObsidian, isTargetHTMLElement, KeysOfType } from 'utils';
@@ -26,6 +27,7 @@ export default class PDFPlus extends Plugin {
 	events: Events = new Events();
 	/** Manages DOMs and event handlers introduced by this plugin. */
 	domManager: DomManager;
+	skimCache: SkimCache;
 	/** When loaded, just selecting a range of text in a PDF viewer will run the `copy-link-to-selection` command. */
 	autoCopyMode: AutoCopyMode;
 	/** A ribbon icon to toggle auto-focus mode */
@@ -98,6 +100,7 @@ export default class PDFPlus extends Plugin {
 		await this.loadSettings();
 		await this.saveSettings();
 
+		this.skimCache = new SkimCache(this);
 		this.domManager = this.addChild(new DomManager(this));
 		this.domManager.registerCalloutRenderer();
 

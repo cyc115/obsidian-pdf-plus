@@ -692,3 +692,68 @@ body.pdf-plus-vim-hint-inverted {
     --pdf-plus-vim-hint-color: var(--text-on-accent);
     --pdf-plus-vim-hint-background-color: hsl(var(--accent-h), var(--accent-s), var(--accent-l));
 }
+
+/* ------------------------------------------------------------------ *
+ * Skim highlights: AI-picked phrases drawn over the page.
+ * The layer is separate from the backlink layer so the two never mix.
+ * ------------------------------------------------------------------ */
+
+.pdf-plus-skim-layer {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    /* Below the backlink layer, and never in the way of selecting text. */
+    z-index: 1;
+    transform-origin: 0 0;
+    pointer-events: none;
+}
+
+.pdf-plus-skim-layer .pdf-plus-skim-mark {
+    position: absolute;
+    pointer-events: none;
+    box-sizing: content-box;
+    background-color: rgb(from var(--pdf-plus-skim-color) r g b / var(--pdf-plus-skim-opacity, 0.25));
+    border-radius: 0.1em;
+    padding: var(--pdf-plus-highlight-padding-default-em) var(--pdf-plus-highlight-padding-default-em);
+    margin: calc(var(--pdf-plus-highlight-padding-default-em) * -1) calc(var(--pdf-plus-highlight-padding-default-em) * -1);
+}
+
+/* Tier 2 phrases are the "useful, not essential" ones: same colour, lighter. */
+.pdf-plus-skim-layer .pdf-plus-skim-mark[data-tier="2"] {
+    background-color: rgb(from var(--pdf-plus-skim-color) r g b / calc(var(--pdf-plus-skim-opacity, 0.25) * 0.55));
+}
+
+.pdf-container {
+    --pdf-plus-skim-color: var(--text-highlight-bg-rgb, 255, 208, 0);
+    --pdf-plus-skim-color: rgb(var(--text-highlight-bg-rgb, 255 208 0));
+}
+
+/* While a page is being analyzed, show it on the viewer without blocking reading. */
+.pdf-plus-skim-loading .pdf-toolbar {
+    --pdf-plus-skim-pulse: 1;
+}
+
+.pdf-plus-skim-loading .pdf-toolbar::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    height: 2px;
+    width: 100%;
+    background: linear-gradient(90deg, transparent, rgb(from var(--pdf-plus-skim-color) r g b / 0.9), transparent);
+    animation: pdf-plus-skim-sweep 1.4s ease-in-out infinite;
+}
+
+@keyframes pdf-plus-skim-sweep {
+    0% { opacity: 0.2; }
+    50% { opacity: 1; }
+    100% { opacity: 0.2; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .pdf-plus-skim-loading .pdf-toolbar::after {
+        animation: none;
+    }
+}

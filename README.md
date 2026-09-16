@@ -139,6 +139,28 @@ Added annotations will be visible even outside Obsidian, unlike backlink highlig
 
 PDF++ will not modify PDF files themselves unless you explicitly allow it. ***The author assumes no responsibility for any data corruption. Please make sure you have a backup and use it at your own risk.*** Report any issues you encounter [here](https://github.com/RyotaUshio/obsidian-pdf-plus/issues/new).
 
+### Skim highlights: let a model mark the key phrases on a page (experimental)
+
+Turn on skim mode in a PDF viewer and PDF++ marks the phrases worth reading on the page you are on,
+so you can move through a long document quickly. It marks short phrases rather than whole sentences,
+prepares the next pages while you read, and remembers what it found so revisiting a page is instant
+and costs nothing.
+
+The marks are drawn over the page only. **Your PDF file and your notes are never changed by this feature.**
+A phrase that is not on the page word for word is discarded rather than drawn, so a model that
+paraphrases produces no highlight.
+
+> [!IMPORTANT]
+> **This feature sends text to a third-party service.** While skim mode is on, the text of the page you
+> are viewing, the document's file name, and a one-line summary of the previous page are sent to the
+> model provider you configure. Nothing is sent when skim mode is off, and no other part of your vault
+> is ever sent. Choose a local model (Ollama or LM Studio, via the OpenAI-compatible provider) to keep
+> everything on your own machine. Your API key is stored in this plugin's data file in your vault, in
+> plain text, like every other setting.
+
+Set the provider, model and key under "Skim highlights" in the plugin settings, then use the command
+"Toggle skim highlights" or the toolbar's display options menu.
+
 ### PDF page composer: PDF counterpart of the "Note Composer" core plugin
 
 Add, insert, remove or extract PDF pages via commands and **automatically update related links** in the entire vault.

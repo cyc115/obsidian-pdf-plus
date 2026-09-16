@@ -198,6 +198,14 @@ export class PDFPlusCommands extends PDFPlusLibSubmodule {
                 name: 'Restore default settings',
                 callback: () => (new RestoreDefaultModal(this.plugin)).open()
             }, {
+                id: 'toggle-skim-highlights',
+                name: 'Toggle skim highlights',
+                checkCallback: (checking) => this.toggleSkimHighlights(checking)
+            }, {
+                id: 'reanalyze-skim-highlights',
+                name: 'Analyze this PDF again for skim highlights',
+                checkCallback: (checking) => this.reanalyzeSkimHighlights(checking)
+            }, {
                 id: 'open-dataview-inline-fields-modal',
                 name: 'Check Dataview inline fields',
                 checkCallback: (checking) => {
@@ -216,6 +224,20 @@ export class PDFPlusCommands extends PDFPlusLibSubmodule {
         for (const command of commandArray) {
             this.commands[command.id] = command;
         }
+    }
+
+    toggleSkimHighlights(checking: boolean) {
+        const child = this.lib.getPDFViewerChild(true);
+        if (!child?.skim) return false;
+        if (!checking) child.skim.toggle();
+        return true;
+    }
+
+    reanalyzeSkimHighlights(checking: boolean) {
+        const child = this.lib.getPDFViewerChild(true);
+        if (!child?.skim?.isActive) return false;
+        if (!checking) child.skim.clearCacheAndReanalyze();
+        return true;
     }
 
     registerCommands() {
