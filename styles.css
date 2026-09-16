@@ -711,6 +711,8 @@ body.pdf-plus-vim-hint-inverted {
 }
 
 .pdf-plus-skim-layer .pdf-plus-skim-mark {
+    /* Overridden per-vault from the plugin's colour settings; this is the fallback. */
+    --pdf-plus-skim-color: rgb(var(--text-highlight-bg-rgb));
     position: absolute;
     pointer-events: none;
     box-sizing: content-box;
@@ -725,16 +727,7 @@ body.pdf-plus-vim-hint-inverted {
     background-color: rgb(from var(--pdf-plus-skim-color) r g b / calc(var(--pdf-plus-skim-opacity, 0.25) * 0.55));
 }
 
-.pdf-container {
-    --pdf-plus-skim-color: var(--text-highlight-bg-rgb, 255, 208, 0);
-    --pdf-plus-skim-color: rgb(var(--text-highlight-bg-rgb, 255 208 0));
-}
-
 /* While a page is being analyzed, show it on the viewer without blocking reading. */
-.pdf-plus-skim-loading .pdf-toolbar {
-    --pdf-plus-skim-pulse: 1;
-}
-
 .pdf-plus-skim-loading .pdf-toolbar::after {
     content: '';
     position: absolute;
@@ -742,7 +735,7 @@ body.pdf-plus-vim-hint-inverted {
     bottom: 0;
     height: 2px;
     width: 100%;
-    background: linear-gradient(90deg, transparent, rgb(from var(--pdf-plus-skim-color) r g b / 0.9), transparent);
+    background: linear-gradient(90deg, transparent, rgb(var(--text-highlight-bg-rgb)), transparent);
     animation: pdf-plus-skim-sweep 1.4s ease-in-out infinite;
 }
 

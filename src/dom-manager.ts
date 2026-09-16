@@ -71,6 +71,16 @@ export class DomManager extends PDFPlusComponent {
 			`}`
 		].join('\n');
 
+		// Skim highlights: colour and opacity of the AI-picked marks.
+		let skimColor = settings.colors[settings.defaultColor];
+		if (!skimColor || !isHexString(skimColor)) skimColor = 'rgb(var(--text-highlight-bg-rgb))';
+		this.styleEl.textContent += [
+			`\n.pdf-plus-skim-layer .pdf-plus-skim-mark {`,
+			`    --pdf-plus-skim-color: ${skimColor};`,
+			`    --pdf-plus-skim-opacity: ${settings.skimOpacity};`,
+			`}`
+		].join('\n');
+
 		let backlinkHoverColor = settings.colors[settings.backlinkHoverColor];
 		if (!backlinkHoverColor || !isHexString(backlinkHoverColor)) backlinkHoverColor = DEFAULT_BACKLINK_HOVER_COLOR;
 		this.styleEl.textContent += [
