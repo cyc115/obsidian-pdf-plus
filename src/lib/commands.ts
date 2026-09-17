@@ -227,6 +227,7 @@ export class PDFPlusCommands extends PDFPlusLibSubmodule {
     }
 
     toggleSkimHighlights(checking: boolean) {
+        if (!this.settings.skimEnabled) return false;
         const child = this.lib.getPDFViewerChild(true);
         if (!child?.skim) return false;
         if (!checking) child.skim.toggle();
@@ -234,6 +235,7 @@ export class PDFPlusCommands extends PDFPlusLibSubmodule {
     }
 
     reanalyzeSkimHighlights(checking: boolean) {
+        if (!this.settings.skimEnabled) return false;
         const child = this.lib.getPDFViewerChild(true);
         if (!child?.skim?.isActive) return false;
         if (!checking) child.skim.clearCacheAndReanalyze();

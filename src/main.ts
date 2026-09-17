@@ -7,8 +7,9 @@ import { AutoCopyMode } from 'auto-copy';
 import { ColorPalette } from 'color-palette';
 import { DomManager } from 'dom-manager';
 import { SkimCache } from 'skim/skim-cache';
+import { LEGACY_SKIM_ENDPOINT, PROVIDER_DEFAULT_ENDPOINTS } from 'skim/llm';
 import { PDFCroppedEmbed } from 'pdf-cropped-embed';
-import { DEFAULT_SETTINGS, NamedTemplate, PDFPlusSettings, PDFPlusSettingTab } from 'settings';
+import { BUILD_STAMP, DEFAULT_SETTINGS, NamedTemplate, PDFPlusSettings, PDFPlusSettingTab } from 'settings';
 import { subpathToParams, OverloadParameters, focusObsidian, isTargetHTMLElement, KeysOfType } from 'utils';
 import { DestArray, PDFEmbed, PDFView, PDFViewerChild, PDFViewerComponent, Rect } from 'typings';
 import { InstallerVersionModal } from 'modals';
@@ -216,7 +217,19 @@ export default class PDFPlus extends Plugin {
 			this.settings.colors[name] = hex.toLowerCase();
 		}
 
+		// Temporary diagnostic: stamp which bundle is actually running into data.json, which is
+		// written on every load and syncs back to the machine that built it.
+		(this.settings as any).__build = BUILD_STAMP;
+
 		/** migration from legacy settings */
+
+		// Skim highlights first shipped with the Ollama URL as the endpoint default, even for
+		// OpenRouter, whose URL was hardcoded elsewhere. A saved value beats a changed default,
+		// so anyone who loaded that build keeps a localhost URL that OpenRouter cannot use.
+		if (this.settings.skimProvider === 'openrouter'
+			&& this.settings.skimEndpoint === LEGACY_SKIM_ENDPOINT) {
+			this.settings.skimEndpoint = PROVIDER_DEFAULT_ENDPOINTS.openrouter;
+		}
 
 		if (this.settings.paneTypeForFirstMDLeaf as PaneType | '' === 'split') {
 			this.settings.paneTypeForFirstMDLeaf = 'right';

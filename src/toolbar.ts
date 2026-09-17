@@ -233,15 +233,6 @@ export class PDFPlusToolbar extends PDFPlusComponent {
                                 });
                         })
                         .addItem((item) => {
-                            const skim = this.child.skim;
-                            item.setSection('appearance')
-                                .setIcon('lucide-highlighter')
-                                .setTitle('Skim highlights')
-                                .setChecked(!!skim?.isActive)
-                                .setDisabled(!skim)
-                                .onClick(() => skim?.toggle());
-                        })
-                        .addItem((item) => {
                             item.setSection('settings')
                                 .setIcon('lucide-settings')
                                 .setTitle('Customize defaults...')
@@ -250,6 +241,21 @@ export class PDFPlusToolbar extends PDFPlusComponent {
                                         .scrollToHeading('viewer-option');
                                 });
                         });
+
+                    // Added out of order on purpose: items are grouped by section, not by
+                    // insertion, so this still lands next to "Adapt to theme".
+                    if (this.plugin.settings.skimEnabled) {
+                        menu.addItem((item) => {
+                            const skim = this.child.skim;
+                            item.setSection('appearance')
+                                .setIcon('lucide-highlighter')
+                                .setTitle('Skim highlights')
+                                .setChecked(!!skim?.isActive)
+                                .setDisabled(!skim)
+                                .onClick(() => skim?.toggle());
+                        });
+                    }
+
                     menu.onHide(() => {
                         shown = false;
                     });

@@ -77,6 +77,10 @@ export class SkimController extends PDFPlusComponent {
 
     start() {
         if (this.active) return;
+        if (!this.settings.skimEnabled) {
+            new Notice(`${this.plugin.manifest.name}: Skim highlights are turned off in settings.`);
+            return;
+        }
         try {
             this.provider = createSkimProvider(this.settings);
         } catch (error) {

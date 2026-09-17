@@ -12,6 +12,26 @@ export const SKIM_PROVIDERS = {
 
 export type SkimProviderId = keyof typeof SKIM_PROVIDERS;
 
+/**
+ * The endpoint each provider starts with, so switching providers fills the box with a
+ * working URL instead of leaving the previous provider's one behind.
+ *
+ * Anthropic's messages API is not OpenAI-shaped and its URL is fixed, so it has no entry.
+ */
+export const PROVIDER_DEFAULT_ENDPOINTS: Record<SkimProviderId, string> = {
+    openrouter: 'https://openrouter.ai/api/v1/chat/completions',
+    anthropic: '',
+    'openai-compatible': 'http://localhost:11434/v1/chat/completions',
+};
+
+/** The endpoint default shipped by the first skim build, kept only for the migration in `loadSettings`. */
+export const LEGACY_SKIM_ENDPOINT = 'http://localhost:11434/v1/chat/completions';
+
+/** Whether the endpoint box applies to this provider. */
+export function providerUsesEndpoint(provider: SkimProviderId): boolean {
+    return provider !== 'anthropic';
+}
+
 /** Endpoints that don't need a key, so the settings tab can stop nagging about one. */
 export function providerNeedsApiKey(provider: SkimProviderId, endpoint: string): boolean {
     if (provider !== 'openai-compatible') return true;
@@ -41,10 +61,10 @@ export function createSkimProvider(settings: PDFPlusSettings): SkimProvider {
             return new OpenAICompatibleProvider('openai-compatible', endpoint, model, apiKey, false);
         }
         case 'openrouter':
-        default:
+        default: {
             if (!apiKey) throw new SkimError('No API key is set.', 'Add one in PDF++ settings, under Skim highlights.');
-            return new OpenAICompatibleProvider(
-                'openrouter', 'https://openrouter.ai/api/v1/chat/completions', model, apiKey, true
-            );
+            const endpoint = settings.skimEndpoint.trim() || PROVIDER_DEFAULT_ENDPOINTS.openrouter;
+            return new OpenAICompatibleProvider('openrouter', endpoint, model, apiKey, true);
+        }
     }
 }

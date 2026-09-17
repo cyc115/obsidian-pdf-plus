@@ -1,6 +1,6 @@
 {
     "name": "obsidian-pdf-plus",
-    "version": "0.40.31",
+    "version": "0.41.0-skim.1",
     "description": "The most Obsidian-native PDF annotation tool ever.",
     "scripts": {
         "dev": "node esbuild.config.mjs",
@@ -12,7 +12,7 @@
         "test:watch": "vitest"
     },
     "keywords": [],
-    "author": "Ryota Ushio",
+    "author": "Mike Chen (fork of PDF++ by Ryota Ushio)",
     "license": "MIT",
     "devDependencies": {
         "@cantoo/pdf-lib": "^2.4.3",
