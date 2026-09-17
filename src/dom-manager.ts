@@ -3,11 +3,14 @@ import { MarkdownRenderChild, RGB } from 'obsidian';
 import PDFPlus from 'main';
 import { ColorPalette } from 'color-palette';
 import { DEFAULT_BACKLINK_HOVER_COLOR } from 'settings';
-import { hexToRgb, isHexString, rgbStringToObject } from 'utils';
+import { getObsidianDefaultHighlightColorRGB, hexToRgb, isHexString, rgbStringToObject } from 'utils';
 import { PDFPlusComponent } from 'lib/component';
 
 
 export class DomManager extends PDFPlusComponent {
+	/** Obsidian's text highlight color as "R, G, B", standing in for `--text-highlight-bg-rgb`, which Obsidian 1.14 removed. */
+	static readonly OBSIDIAN_HIGHLIGHT_RGB_VAR = '--pdf-plus-text-highlight-bg-rgb';
+
 	styleEl: HTMLStyleElement;
 
 	constructor(plugin: PDFPlus) {
@@ -31,6 +34,10 @@ export class DomManager extends PDFPlusComponent {
 	onload() {
 		this.plugin.trigger('update-dom');
 
+		this.updateObsidianHighlightColor();
+		this.registerEvent(this.app.workspace.on('css-change', () => this.updateObsidianHighlightColor()));
+		this.register(() => document.body.style.removeProperty(DomManager.OBSIDIAN_HIGHLIGHT_RGB_VAR));
+
 		this.updateStyleEl();
 
 		this.updateClass('pdf-plus-click-embed-to-open-link', this.settings.dblclickEmbedToOpenLink);
@@ -38,6 +45,11 @@ export class DomManager extends PDFPlusComponent {
 		this.updateClass('pdf-plus-backlink-selection-underline', this.settings.selectionBacklinkVisualizeStyle === 'underline');
 
 		this.app.workspace.trigger('css-change');
+	}
+
+	updateObsidianHighlightColor() {
+		const rgb = getObsidianDefaultHighlightColorRGB() ?? { r: 255, g: 208, b: 0 };
+		document.body.style.setProperty(DomManager.OBSIDIAN_HIGHLIGHT_RGB_VAR, `${rgb.r}, ${rgb.g}, ${rgb.b}`);
 	}
 
 	updateClass(className: string, condition: boolean) {
@@ -61,7 +73,7 @@ export class DomManager extends PDFPlusComponent {
 
 		let defaultColor = settings.colors[settings.defaultColor];
 		if (!defaultColor || !isHexString(defaultColor)) {
-			defaultColor = 'rgb(var(--text-highlight-bg-rgb))';
+			defaultColor = 'rgb(var(--pdf-plus-text-highlight-bg-rgb))';
 		}
 		this.styleEl.textContent += [
 			`\n.pdf-plus-backlink-highlight-layer .pdf-plus-backlink:not(.hovered-highlight) {`,
@@ -73,8 +85,7 @@ export class DomManager extends PDFPlusComponent {
 
 		// Skim highlights: colour and opacity of the AI-picked marks.
 		let skimColor = settings.colors[settings.defaultColor];
-		// `--text-highlight-bg-rgb` is gone in Obsidian 1.14, which left the marks transparent.
-		if (!skimColor || !isHexString(skimColor)) skimColor = 'var(--text-highlight-bg, #ffd000)';
+		if (!skimColor || !isHexString(skimColor)) skimColor = 'rgb(var(--pdf-plus-text-highlight-bg-rgb))';
 		this.styleEl.textContent += [
 			`\n.pdf-plus-skim-layer .pdf-plus-skim-mark {`,
 			`    --pdf-plus-skim-color: ${skimColor};`,
@@ -200,7 +211,7 @@ export class DomManager extends PDFPlusComponent {
 		if (!defaultColorSet) {
 			this.styleEl.textContent += [
 				`\nbody {`,
-				`    --pdf-plus-default-color-rgb: var(--text-highlight-bg-rgb)`,
+				`    --pdf-plus-default-color-rgb: var(--pdf-plus-text-highlight-bg-rgb)`,
 				`}`
 			].join('\n');
 		}
