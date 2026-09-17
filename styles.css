@@ -712,7 +712,7 @@ body.pdf-plus-vim-hint-inverted {
 
 .pdf-plus-skim-layer .pdf-plus-skim-mark {
     /* Overridden per-vault from the plugin's colour settings; this is the fallback. */
-    --pdf-plus-skim-color: rgb(var(--text-highlight-bg-rgb));
+    --pdf-plus-skim-color: var(--text-highlight-bg, #ffd000);
     position: absolute;
     pointer-events: none;
     box-sizing: content-box;
@@ -735,7 +735,7 @@ body.pdf-plus-vim-hint-inverted {
     bottom: 0;
     height: 2px;
     width: 100%;
-    background: linear-gradient(90deg, transparent, rgb(var(--text-highlight-bg-rgb)), transparent);
+    background: linear-gradient(90deg, transparent, var(--text-highlight-bg, #ffd000), transparent);
     animation: pdf-plus-skim-sweep 1.4s ease-in-out infinite;
 }
 

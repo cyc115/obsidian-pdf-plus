@@ -73,7 +73,8 @@ export class DomManager extends PDFPlusComponent {
 
 		// Skim highlights: colour and opacity of the AI-picked marks.
 		let skimColor = settings.colors[settings.defaultColor];
-		if (!skimColor || !isHexString(skimColor)) skimColor = 'rgb(var(--text-highlight-bg-rgb))';
+		// `--text-highlight-bg-rgb` is gone in Obsidian 1.14, which left the marks transparent.
+		if (!skimColor || !isHexString(skimColor)) skimColor = 'var(--text-highlight-bg, #ffd000)';
 		this.styleEl.textContent += [
 			`\n.pdf-plus-skim-layer .pdf-plus-skim-mark {`,
 			`    --pdf-plus-skim-color: ${skimColor};`,
