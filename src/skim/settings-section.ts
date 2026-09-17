@@ -13,22 +13,6 @@ import {
  * largest file in the repository and the one most likely to conflict with upstream.
  */
 export function addSkimSettings(tab: PDFPlusSettingTab): void {
-    // The settings tab is built by one long run of statements, so anything thrown here would
-    // silently swallow every section below it. Show the failure instead of hiding it.
-    try {
-        buildSkimSettings(tab);
-    } catch (error) {
-        console.error('PDF++: the Skim highlights settings section failed to render.', error);
-        tab.writeRenderStatus(`skim section: ${error instanceof Error ? (error.stack ?? error.message) : String(error)}`);
-        tab.addSetting()
-            .setName('Skim highlights: this section failed to render')
-            .setDesc(error instanceof Error ? `${error.name}: ${error.message}` : String(error))
-            .then((setting) => setting.settingEl.addClass('pdf-plus-skim-settings-error'));
-    }
-}
-
-
-function buildSkimSettings(tab: PDFPlusSettingTab): void {
     tab.addHeading('Skim highlights', 'skim', 'lucide-highlighter')
         .setDesc(
             'A model reads the page you are on and marks the phrases worth seeing, so you can skim '

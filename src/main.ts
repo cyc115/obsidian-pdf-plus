@@ -9,7 +9,7 @@ import { DomManager } from 'dom-manager';
 import { SkimCache } from 'skim/skim-cache';
 import { LEGACY_SKIM_ENDPOINT, PROVIDER_DEFAULT_ENDPOINTS } from 'skim/llm';
 import { PDFCroppedEmbed } from 'pdf-cropped-embed';
-import { BUILD_STAMP, DEFAULT_SETTINGS, NamedTemplate, PDFPlusSettings, PDFPlusSettingTab } from 'settings';
+import { DEFAULT_SETTINGS, NamedTemplate, PDFPlusSettings, PDFPlusSettingTab } from 'settings';
 import { subpathToParams, OverloadParameters, focusObsidian, isTargetHTMLElement, KeysOfType } from 'utils';
 import { DestArray, PDFEmbed, PDFView, PDFViewerChild, PDFViewerComponent, Rect } from 'typings';
 import { InstallerVersionModal } from 'modals';
@@ -216,10 +216,6 @@ export default class PDFPlus extends Plugin {
 		for (const [name, hex] of Object.entries(this.settings.colors)) {
 			this.settings.colors[name] = hex.toLowerCase();
 		}
-
-		// Temporary diagnostic: stamp which bundle is actually running into data.json, which is
-		// written on every load and syncs back to the machine that built it.
-		(this.settings as any).__build = BUILD_STAMP;
 
 		/** migration from legacy settings */
 
@@ -915,8 +911,10 @@ export default class PDFPlus extends Plugin {
 	}
 
 	requireModKeyForLinkHover(id = 'pdf-plus') {
-		// @ts-ignore
-		return this.app.internalPlugins.plugins['page-preview'].instance.overrides[id]
+		// Obsidian 1.14 moved the per-source overrides from `instance.overrides` to `instance.options`.
+		const instance: any = this.app.internalPlugins.plugins['page-preview']?.instance;
+		const overrides = instance?.overrides ?? instance?.options;
+		return overrides?.[id]
 			?? this.app.workspace.hoverLinkSources[id]?.defaultMod
 			?? false;
 	}

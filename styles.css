@@ -750,8 +750,3 @@ body.pdf-plus-vim-hint-inverted {
         animation: none;
     }
 }
-
-.pdf-plus-skim-settings-error .setting-item-name,
-.pdf-plus-skim-settings-error .setting-item-description {
-    color: var(--text-error);
-}

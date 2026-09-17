@@ -1,4 +1,4 @@
-import { Component, DropdownComponent, Events, HexString, IconName, MarkdownRenderer, Modifier, Notice, ObsidianProtocolData, Platform, PluginSettingTab, Setting, TextAreaComponent, TextComponent, apiVersion, debounce, setIcon, setTooltip } from 'obsidian';
+import { Component, DropdownComponent, Events, HexString, IconName, MarkdownRenderer, Modifier, Notice, ObsidianProtocolData, Platform, PluginSettingTab, Setting, TextAreaComponent, TextComponent, debounce, setIcon, setTooltip } from 'obsidian';
 import { SkimProviderId } from 'skim/llm';
 import { addSkimSettings } from 'skim/settings-section';
 
@@ -320,9 +320,6 @@ export interface PDFPlusSettings {
 	autoCheckForUpdates: boolean;
 	fixObsidianTextSelectionBug: boolean;
 }
-
-/** Temporary diagnostic: bumped on each local build so data.json shows which bundle is live. */
-export const BUILD_STAMP = 'diag-05:12Z';
 
 export const DEFAULT_SETTINGS: PDFPlusSettings = {
 	displayTextFormats: [
@@ -1428,7 +1425,7 @@ export class PDFPlusSettingTab extends PluginSettingTab {
 	}
 
 	addRequireModKeyOnHoverSetting(id: string) {
-		const display = this.app.workspace.hoverLinkSources[id].display;
+		const display = this.app.workspace.hoverLinkSources[id]?.display ?? id;
 		const required = this.plugin.requireModKeyForLinkHover(id);
 		return this.addSetting()
 			.setName(`Require ${modKey} key while hovering`)
@@ -1604,44 +1601,6 @@ export class PDFPlusSettingTab extends PluginSettingTab {
 	}
 
 	async display(): Promise<void> {
-		// The tab is built by one long run of statements, so a throw anywhere leaves the page
-		// silently truncated with no clue as to where. Surface it instead.
-		try {
-			await this.renderSettings();
-		} catch (error) {
-			console.error('PDF++: the settings tab failed to render.', error);
-			this.writeRenderStatus(error instanceof Error ? (error.stack ?? `${error.name}: ${error.message}`) : String(error));
-			new Notice(`${this.plugin.manifest.name}: the settings tab failed to render. ${error instanceof Error ? error.message : String(error)}`, 30000);
-			this.addSetting()
-				.setName('PDF++ settings failed to render')
-				.setDesc(error instanceof Error ? `${error.name}: ${error.message}` : String(error))
-				.then((setting) => setting.settingEl.addClass('pdf-plus-skim-settings-error'));
-			return;
-		}
-		this.writeRenderStatus('ok');
-	}
-
-	/**
-	 * Temporary diagnostic: record how far the settings tab got, next to the plugin's own files.
-	 * Remove once the render failure is understood.
-	 */
-	writeRenderStatus(status: string): void {
-		// data.json is the one file this plugin is known to write successfully, so the status
-		// goes there rather than into a file whose write path is unproven.
-		(this.plugin.settings as any).__renderStatus = `${new Date().toISOString()} | ${apiVersion} | ${status}`;
-		this.plugin.saveSettings();
-
-		const dir = this.plugin.manifest.dir;
-		if (!dir) {
-			console.error('PDF++: manifest.dir is empty, cannot write the render status log.');
-			return;
-		}
-		this.app.vault.adapter
-			.write(`${dir}/skim-render-status.log`, `${new Date().toISOString()}\n${apiVersion}\n${status}`)
-			.catch((error) => console.error('PDF++: could not write the render status log.', error));
-	}
-
-	private async renderSettings(): Promise<void> {
 		// First of all, re-display the installer version modal that was shown in plugin.onload again if necessary,
 		// in case the user has accidentally closed it.
 		InstallerVersionModal.openIfNecessary(this.plugin);
