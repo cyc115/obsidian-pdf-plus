@@ -3,6 +3,7 @@ import * as pdflib from '@cantoo/pdf-lib';
 
 import { patchPDFView, patchPDFInternals, patchBacklink, patchWorkspace, patchPagePreview, patchClipboardManager, patchPDFInternalFromPDFEmbed, patchMenu } from 'patchers';
 import { PDFPlusLib } from 'lib';
+import { SelfWriteTracker } from 'lib/self-write';
 import { AutoCopyMode } from 'auto-copy';
 import { ColorPalette } from 'color-palette';
 import { DomManager } from 'dom-manager';
@@ -21,6 +22,11 @@ import { DataviewInlineFieldsModal, withFilesWithInlineFields } from 'lib/datavi
 export default class PDFPlus extends Plugin {
 	/** The core internal API. Not intended to be used by other plugins. */
 	lib: PDFPlusLib = new PDFPlusLib(this);
+	/**
+	 * Writes PDF++ made itself, so the PDF view can skip the reload Obsidian
+	 * performs when a file it is displaying changes on disk.
+	 */
+	selfWrites: SelfWriteTracker = new SelfWriteTracker();
 	/** User's preferences. */
 	settings: PDFPlusSettings;
 	/** The plugin setting tab. */
@@ -750,6 +756,13 @@ export default class PDFPlus extends Plugin {
 			if (file instanceof TFile && this.settings.newFileTemplatePath === file.path) {
 				this.settings.newFileTemplatePath = '';
 				this.saveSettings();
+			}
+		}));
+
+		// A PDF changed by anything but PDF++ invalidates our parse of it.
+		this.registerEvent(this.app.vault.on('modify', (file) => {
+			if (file instanceof TFile && file.extension === 'pdf' && !this.selfWrites.isSelfWrite(file.path)) {
+				this.lib.highlight.writeFile.invalidateCache(file.path);
 			}
 		}));
 

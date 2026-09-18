@@ -155,6 +155,8 @@ export interface PDFPlusSettings {
 	renderMarkdownInStickyNote: boolean;
 	enablePDFEdit: boolean;
 	author: string;
+	deferReloadOnSelfEdit: boolean;
+	cacheParsedPDFForEditing: boolean;
 	writeHighlightToFileOpacity: number;
 	defaultWriteFileToggle: boolean;
 	syncWriteFileToggle: boolean;
@@ -439,6 +441,8 @@ export const DEFAULT_SETTINGS: PDFPlusSettings = {
 	renderMarkdownInStickyNote: false,
 	enablePDFEdit: false,
 	author: '',
+	deferReloadOnSelfEdit: true,
+	cacheParsedPDFForEditing: true,
 	writeHighlightToFileOpacity: 0.2,
 	defaultWriteFileToggle: false,
 	syncWriteFileToggle: true,
@@ -1676,6 +1680,20 @@ export class PDFPlusSettingTab extends PluginSettingTab {
 					const inputEl = (setting.components[0] as TextComponent).inputEl;
 					inputEl.toggleClass('error', !inputEl.value);
 				});
+			this.addToggleSetting('deferReloadOnSelfEdit')
+				.setName('Show new highlights without reloading the PDF')
+				.then((setting) => {
+					this.renderMarkdown([
+						'Obsidian reloads the entire PDF whenever the file changes on disk, which makes the view flash every time you highlight. With this on, PDF++ draws the new highlight itself and skips that reload.',
+						'',
+						'Until the document is next loaded for real, a new highlight is drawn by PDF++ rather than by the PDF renderer. Clicking it reloads the document and opens its annotation popup.',
+					], setting.descEl);
+				});
+
+			this.addToggleSetting('cacheParsedPDFForEditing')
+				.setName('Keep the PDF parsed between edits')
+				.setDesc('Avoids re-reading and re-parsing the whole file for every annotation. Uses more memory for the file you are annotating; turn off if you edit very large PDFs and memory is tight.');
+
 			// this.addToggleSetting('enableEditEncryptedPDF')
 			// .setName('Enable editing encrypted PDF files');
 		}

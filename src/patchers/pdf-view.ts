@@ -52,13 +52,32 @@ export const patchPDFView = (plugin: PDFPlus): boolean => {
                     });
                 };
             },
-            // Called inside onModify
+            // Obsidian re-runs `onLoadFile` for the open file whenever it changes on
+            // disk, which re-fetches and re-parses the whole document and rebuilds the
+            // viewer. (Older versions routed this through `onModify`; as of 1.13 that
+            // method is never called, so the guard lives here, where the reload
+            // actually happens.)
+            //
+            // When PDF++ is the one that wrote, that work is wasted - the viewer
+            // already knows what changed, and `PendingAnnotationLayer` draws it - so
+            // the reload is skipped and deferred until something needs it.
             onLoadFile(old) {
                 return async function (file: TFile) {
                     // The original implementation is `this.viewer.loadFile(e)`, which ignores the subpath
+                    const self = this as PDFView;
+
+                    // Only a reload of what is already on screen may be skipped.
+                    // Opening a file, or switching to another, must always load.
+                    const child = self.viewer.child;
+                    const isReloadOfSameFile = !!child && child.file === file && !!child.pdfViewer?.pagesCount;
+
+                    if (isReloadOfSameFile
+                        && plugin.settings.deferReloadOnSelfEdit
+                        && plugin.selfWrites.isSelfWrite(file.path)) {
+                        return;
+                    }
 
                     // Restore the last page, position & zoom level on file mofiication
-                    const self = this as PDFView;
                     const state = self.getState();
                     const subpath = lib.viewStateToSubpath(state);
                     return self.viewer.loadFile(file, subpath ?? undefined);

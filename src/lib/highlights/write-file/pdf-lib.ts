@@ -43,9 +43,9 @@ export class PdfLibIO extends PDFPlusLibSubmodule implements IPdfIo {
 
             const annotationID = formatAnnotationID(ref.objectNumber, ref.generationNumber);
             return annotationID;
-        });
+        }, true);
     }
-    
+
     async addHighlightAnnotation(file: TFile, pageNumber: number, rects: Rect[], colorName?: string, contents?: string) {
         return await this.addTextMarkupAnnotation(file, pageNumber, rects, 'Highlight', colorName, contents);
     }
@@ -80,18 +80,67 @@ export class PdfLibIO extends PDFPlusLibSubmodule implements IPdfIo {
         });
     }
 
-    async process<T>(file: TFile, fn: (pdfDoc: PDFDocument) => T) {
-        const pdfDoc = await this.lib.loadPdfLibDocument(file);
+    /**
+     * The most recently parsed document, kept so that a run of edits on one file
+     * parses it once instead of once per edit.
+     *
+     * Holds a single entry: annotating is a sequence of small edits to the file the
+     * reader currently has open, so a bigger cache would cost memory without
+     * catching more hits. Dropped as soon as anything but PDF++ writes the file -
+     * see `invalidate`, wired up in `main.ts`.
+     */
+    private parsed: { path: string, mtime: number, size: number, doc: PDFDocument } | null = null;
+
+    /**
+     * @param deferReload Skip the viewer reload Obsidian does on file modification.
+     * Only safe when the caller can show the change itself: adding an annotation
+     * qualifies, because `PendingAnnotationLayer` draws it. Editing or deleting one
+     * does not - the viewer would keep rendering the old version - so those reload.
+     */
+    async process<T>(file: TFile, fn: (pdfDoc: PDFDocument) => T, deferReload = false) {
+        const pdfDoc = await this.load(file);
 
         const ret = await fn(pdfDoc);
 
-        await this.app.vault.modifyBinary(file, await pdfDoc.save());
+        const data = await pdfDoc.save();
+        // Claim the write before making it: the `modify` event it triggers is what
+        // the PDF view checks to decide whether to reload the whole document.
+        if (deferReload && this.plugin.settings.deferReloadOnSelfEdit) {
+            this.plugin.selfWrites.markWrite(file.path);
+        }
+        await this.app.vault.modifyBinary(file, data);
+        this.remember(file, pdfDoc);
+
         return ret;
     }
 
     async read<T>(file: TFile, fn: (pdfDoc: PDFDocument) => T) {
-        const pdfDoc = await this.lib.loadPdfLibDocument(file);
+        const pdfDoc = await this.load(file);
         return await fn(pdfDoc);
+    }
+
+    private async load(file: TFile): Promise<PDFDocument> {
+        if (this.plugin.settings.cacheParsedPDFForEditing
+            && this.parsed
+            && this.parsed.path === file.path
+            && this.parsed.mtime === file.stat.mtime
+            && this.parsed.size === file.stat.size) {
+            return this.parsed.doc;
+        }
+
+        this.parsed = null;
+        return await this.lib.loadPdfLibDocument(file);
+    }
+
+    private remember(file: TFile, doc: PDFDocument) {
+        this.parsed = this.plugin.settings.cacheParsedPDFForEditing
+            ? { path: file.path, mtime: file.stat.mtime, size: file.stat.size, doc }
+            : null;
+    }
+
+    /** Forget the cached document for a file that changed outside PDF++. */
+    invalidate(path?: string) {
+        if (!path || this.parsed?.path === path) this.parsed = null;
     }
 
     addAnnotation(page: PDFPage, annotDict: Record<string, any>): PDFRef {

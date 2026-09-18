@@ -16,6 +16,7 @@ import { ScrollMode, SidebarView, SpreadMode } from 'pdfjs-enums';
 import { BibliographyManager } from 'bib';
 import { VimBindings } from 'vim/vim';
 import { SkimController } from 'skim/skim-controller';
+import { PendingAnnotationLayer } from 'lib/highlights/pending';
 
 
 declare global {
@@ -136,6 +137,8 @@ interface PDFViewerChild {
     activeAnnotationPopupEl: HTMLElement | null;
     /** Skim highlights for this viewer. Added by this plugin. */
     skim: SkimController | null;
+    /** Annotations written to the file but not yet rendered by PDF.js. Added by this plugin. */
+    pendingAnnotations: PendingAnnotationLayer | null;
     /** The PDF file that is currently loaded in the viewer. */
     file: TFile | null;
     /** Called right after the instantiation. Performs various initialization that is not file-specific. */

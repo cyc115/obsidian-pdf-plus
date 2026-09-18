@@ -22,10 +22,30 @@ export class AnnotationWriteFileLib extends PDFPlusLibSubmodule {
     }
 
     async addTextMarkupAnnotationToSelection(subtype: TextMarkupAnnotationSubtype, colorName?: string) {
-        return this.addAnnotationToSelection(async (file, page, rects) => {
+        const result = await this.addAnnotationToSelection(async (file, page, rects) => {
             const io = this.getPdfIo();
             return await io.addTextMarkupAnnotation(file, page, rects, subtype, colorName);
         });
+
+        // The write deliberately did not reload the viewer, so PDF.js does not know
+        // about this annotation yet. Draw it so it shows up immediately.
+        if (result?.annotationID && result.rects?.length) {
+            result.child.pendingAnnotations?.add({
+                id: result.annotationID,
+                page: result.page,
+                rects: result.rects,
+                subtype,
+                rgb: this.plugin.domManager.getRgb(colorName),
+                opacity: subtype === 'Highlight' ? this.settings.writeHighlightToFileOpacity : 1,
+            });
+        }
+
+        return result;
+    }
+
+    /** Forget any cached parse of a file that changed outside PDF++. */
+    invalidateCache(path?: string) {
+        this.pdflib.invalidate(path);
     }
 
     /**

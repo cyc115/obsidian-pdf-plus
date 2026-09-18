@@ -750,3 +750,50 @@ body.pdf-plus-vim-hint-inverted {
         animation: none;
     }
 }
+
+/* Annotations PDF++ has written to the file but that PDF.js has not parsed yet.
+   Drawn to match how the renderer will draw them after the next real load, so the
+   swap is invisible. Unlike the skim layer these accept clicks: clicking one
+   reloads the document and opens the real annotation popup. */
+.pdf-plus-pending-annotation-layer {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    /* Above backlink highlights, below the text layer so selection still works. */
+    z-index: 2;
+    transform-origin: 0 0;
+    pointer-events: none;
+}
+
+.pdf-plus-pending-annotation-layer .pdf-plus-pending-annotation {
+    --pdf-plus-pending-annotation-color: var(--pdf-plus-text-highlight-bg-rgb);
+    --pdf-plus-pending-annotation-opacity: 0.2;
+    position: absolute;
+    box-sizing: content-box;
+    pointer-events: auto;
+    cursor: pointer;
+}
+
+.pdf-plus-pending-annotation-layer .pdf-plus-pending-annotation[data-subtype="Highlight"] {
+    background-color: rgb(var(--pdf-plus-pending-annotation-color) / var(--pdf-plus-pending-annotation-opacity));
+    mix-blend-mode: multiply;
+}
+
+.pdf-plus-pending-annotation-layer .pdf-plus-pending-annotation[data-subtype="Underline"] {
+    border-bottom: 1px solid rgb(var(--pdf-plus-pending-annotation-color));
+}
+
+.pdf-plus-pending-annotation-layer .pdf-plus-pending-annotation[data-subtype="Squiggly"] {
+    border-bottom: 2px dotted rgb(var(--pdf-plus-pending-annotation-color));
+}
+
+.pdf-plus-pending-annotation-layer .pdf-plus-pending-annotation[data-subtype="StrikeOut"]::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    border-top: 1px solid rgb(var(--pdf-plus-pending-annotation-color));
+}

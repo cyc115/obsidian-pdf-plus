@@ -387,8 +387,8 @@ export class copyLinkLib extends PDFPlusLibSubmodule {
                     const { child, file, page, annotationID, rects } = result;
                     if (!annotationID || !file) return;
 
-                    setTimeout(() => {
-                        // After the file modification, the PDF viewer DOM is reloaded, so we need to 
+                    const copyLinkAndReportStatus = () => {
+                        // After the file modification, the PDF viewer DOM is reloaded, so we need to
                         // get the new DOM to access the newly loaded color palette instance.
                         const newPalette = this.lib.getColorPaletteFromChild(child);
                         newPalette?.setStatus('Link copied', this.statusDurationMs);
@@ -403,7 +403,16 @@ export class copyLinkLib extends PDFPlusLibSubmodule {
                                 this.plugin.lastCopiedDestInfo = { file, destArray: [page - 1, 'XYZ', left, top, null] };
                             }
                         }
-                    }, 300);
+                    };
+
+                    // The delay exists only to outlast that reload. When the reload is
+                    // deferred the DOM never goes away, so waiting would just make the
+                    // status message arrive late.
+                    if (this.settings.deferReloadOnSelfEdit) {
+                        copyLinkAndReportStatus();
+                    } else {
+                        setTimeout(copyLinkAndReportStatus, 300);
+                    }
                 });
         }
 

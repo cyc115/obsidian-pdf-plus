@@ -12,6 +12,7 @@ import { PDFViewerBacklinkVisualizer } from 'backlink-visualizer';
 import { PDFPlusToolbar } from 'toolbar';
 import { BibliographyManager } from 'bib';
 import { SkimController } from 'skim/skim-controller';
+import { PendingAnnotationLayer } from 'lib/highlights/pending';
 import { camelCaseToKebabCase, getCharactersWithBoundingBoxesInPDFCoords, getTextLayerInfo, hookInternalLinkMouseEventHandlers, isEmbed, isModifierName, isNonEmbedLike, selectDoubleClickedWord, selectTrippleClickedTextLayerNode, showChildElOnParentElHover } from 'utils';
 import { AnnotationElement, PDFOutlineViewer, PDFViewerComponent, PDFViewerChild, PDFSearchSettings, Rect, PDFAnnotationHighlight, PDFTextHighlight, PDFRectHighlight, ObsidianViewer, PDFPageView } from 'typings';
 import { SidebarView, SpreadMode } from 'pdfjs-enums';
@@ -135,6 +136,7 @@ const patchPDFViewerChild = (plugin: PDFPlus, child: PDFViewerChild) => {
                 this.rectHighlight = null;
                 this.bib = null;
                 this.skim = null;
+                this.pendingAnnotations = null;
 
                 if (!this.component) {
                     this.component = plugin.addChild(new Component());
@@ -388,6 +390,12 @@ const patchPDFViewerChild = (plugin: PDFPlus, child: PDFViewerChild) => {
 
                 this.skim?.unload();
                 this.skim = this.component.addChild(new SkimController(plugin, this, plugin.skimCache));
+
+                // The document was just parsed from the file, so PDF.js now renders every
+                // annotation that is in it. Any stand-in marks from before this load are
+                // stale, and the fresh layer starts empty.
+                this.pendingAnnotations?.unload();
+                this.pendingAnnotations = this.component.addChild(new PendingAnnotationLayer(plugin, this));
 
                 // Register post-processors
 
