@@ -9,10 +9,59 @@ import { TFile } from 'obsidian';
  * open PDF view. Tests can count those events to assert how many reloads a
  * given user action costs.
  */
+/**
+ * The slice of Obsidian's `DataAdapter` that the skim cache uses, over a plain map.
+ *
+ * The cache stores JSON beside the plugin rather than in the vault proper, so it
+ * goes through the adapter instead of the `Vault` API.
+ */
+export class FakeAdapter {
+    private files = new Map<string, string>();
+    private dirs = new Set<string>();
+
+    /** Every path written, in order, so a test can assert how often the cache flushes. */
+    writes: string[] = [];
+
+    async exists(path: string) {
+        return this.files.has(path) || this.dirs.has(path);
+    }
+
+    async read(path: string) {
+        const content = this.files.get(path);
+        if (content === undefined) throw new Error(`FakeAdapter: no such file: ${path}`);
+        return content;
+    }
+
+    async write(path: string, content: string) {
+        this.files.set(path, content);
+        this.writes.push(path);
+    }
+
+    async mkdir(path: string) {
+        this.dirs.add(path);
+    }
+
+    async remove(path: string) {
+        this.files.delete(path);
+    }
+
+    /** Put a file there directly, without counting it as a write. */
+    seed(path: string, content: string) {
+        this.files.set(path, content);
+    }
+
+    /** What is on "disk" now, for assertions about the stored shape. */
+    peek(path: string): string | undefined {
+        return this.files.get(path);
+    }
+}
+
 export class FakeVault {
     private files = new Map<string, TFile>();
     private contents = new Map<string, Uint8Array>();
     private handlers = new Map<string, Set<(...args: any[]) => any>>();
+
+    readonly adapter = new FakeAdapter();
 
     /** Every `modify` event fired, in order. Useful for reload-count assertions. */
     modifyEvents: TFile[] = [];

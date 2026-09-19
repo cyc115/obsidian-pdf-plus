@@ -157,6 +157,67 @@ function paintedAlpha(color: string | undefined): number {
     return parts.length >= 4 ? Number(parts[3]) : 1;
 }
 
+/**
+ * Turn skim mode on with a fake model behind it, and wait for marks to appear.
+ *
+ * `start()` builds a real provider from the user's settings and would call a real
+ * endpoint, so the provider is installed directly and `start()` is bypassed. The
+ * quote comes from a text layer node, which is what the marks anchor against, so
+ * the fake's answer is guaranteed to be findable on the page.
+ */
+async function startSkimWithFakeProvider() {
+    await browser.executeObsidian(async ({ app }, id: string) => {
+        const plugin: any = (app as any).plugins.plugins[id];
+        const view: any = app.workspace.getLeavesOfType('pdf')[0].view;
+        const child = view.viewer.child;
+        const skim = child.skim;
+
+        skim.stop();
+        if (child.file) await plugin.skimCache.clear(child.file);
+
+        // A phrase that is definitely on page 1, kept clear of the line the highlight
+        // tests select so the two features are not fighting over the same text.
+        const nodes = child.getPage(1).div.querySelectorAll('.textLayerNode');
+        let quote = '';
+        for (let i = 2; i < nodes.length; i++) {
+            const text = (nodes[i].textContent ?? '').trim();
+            if (text.length > 20) { quote = text; break; }
+        }
+
+        const w = window as any;
+        w.__skimCalls = 0;
+        w.__skimQuote = quote;
+        skim.provider = {
+            pickSpans: async () => {
+                w.__skimCalls++;
+                return { gist: 'a test gist', spans: quote ? [{ quote, tier: 1 }] : [] };
+            },
+        };
+
+        skim.results.clear();
+        skim.states.clear();
+        skim.active = true;
+        skim.updateToolbarState();
+        skim.analyzeAround(child.pdfViewer.pdfViewer?.currentPageNumber ?? 1);
+    }, PLUGIN_ID);
+
+    await browser.waitUntil(
+        async () => await browser.executeObsidian(({ app }) => {
+            const view: any = app.workspace.getLeavesOfType('pdf')[0].view;
+            return view.viewer.child.containerEl.querySelectorAll('.pdf-plus-skim-mark').length > 0;
+        }),
+        { timeout: 30000, interval: 250, timeoutMsg: 'skim marks never appeared' },
+    );
+
+    return await browser.executeObsidian(({ app }) => {
+        const view: any = app.workspace.getLeavesOfType('pdf')[0].view;
+        return {
+            markCount: view.viewer.child.containerEl.querySelectorAll('.pdf-plus-skim-mark').length,
+            calls: (window as any).__skimCalls as number,
+        };
+    });
+}
+
 async function annotationsInFile(): Promise<PDFDict[]> {
     const bytes = await obsidianPage.readBinary(PDF_PATH);
     const doc = await PDFDocument.load(bytes);
@@ -256,6 +317,55 @@ describe('highlighting a PDF inside Obsidian', function () {
         expect(mark!.display).not.toBe('none');
         expect(Number(mark!.opacity)).toBeGreaterThan(0);
         expect(paintedAlpha(mark!.backgroundColor)).toBeGreaterThan(0);
+    });
+
+    // Skim marks are paid for per page, with real money, so a highlight must not
+    // throw them away and buy them again. Both halves matter: the marks staying put
+    // is what the reader sees, the call count is what they are billed for.
+    it('highlighting neither clears the skim marks nor re-runs the model', async function () {
+        const started = await startSkimWithFakeProvider();
+        expect(started.markCount).toBeGreaterThan(0);
+        expect(started.calls).toBeGreaterThan(0);
+
+        // Watch every DOM mutation rather than sampling on a timer. Once the cache is
+        // keyed on page text the re-analysis is an instant cache hit, so the marks can
+        // be cleared and redrawn well inside a polling interval - a sampler simply does
+        // not see the blink, and the test passes while the overlay still flickers.
+        await browser.executeObsidian(({ app }) => {
+            const view: any = app.workspace.getLeavesOfType('pdf')[0].view;
+            const child = view.viewer.child;
+            const w = window as any;
+            const count = () => child.containerEl.querySelectorAll('.pdf-plus-skim-mark').length;
+
+            w.__skimMin = count();
+            w.__skimObserver = new MutationObserver(() => {
+                const n = count();
+                if (n < w.__skimMin) w.__skimMin = n;
+            });
+            w.__skimObserver.observe(child.containerEl, { childList: true, subtree: true });
+        });
+
+        await highlightALine();
+        // Outlast the self-write window and the few seconds the re-analysis took.
+        await browser.pause(4000);
+
+        const after = await browser.executeObsidian(({ app }) => {
+            const view: any = app.workspace.getLeavesOfType('pdf')[0].view;
+            const child = view.viewer.child;
+            const w = window as any;
+            w.__skimObserver.disconnect();
+            return {
+                lowestMarkCount: w.__skimMin,
+                markCount: child.containerEl.querySelectorAll('.pdf-plus-skim-mark').length,
+                calls: w.__skimCalls,
+            };
+        });
+
+        // The overlay never blinked out.
+        expect(after.lowestMarkCount).toBeGreaterThan(0);
+        expect(after.markCount).toBeGreaterThan(0);
+        // And nothing was bought a second time.
+        expect(after.calls).toBe(started.calls);
     });
 
     // Proves the stamp can actually go missing. Without this, every "no reload"

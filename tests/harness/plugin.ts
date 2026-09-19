@@ -14,6 +14,10 @@ export interface FakePluginOptions {
     cacheParsedPDFForEditing?: boolean;
     /** Colour returned by `domManager.getRgb`, which normally reads a CSS variable. */
     rgb?: RGB;
+    /** Skim settings, which together form the skim cache's settings key. */
+    skimModel?: string;
+    skimDensityPercent?: number;
+    skimReadingGoal?: string;
 }
 
 /**
@@ -27,9 +31,12 @@ export function createFakePlugin(options: FakePluginOptions = {}) {
     const vault = new FakeVault();
 
     const plugin: any = {
-        manifest: { name: 'PDF++', id: 'pdf-plus', version: '0.0.0-test' },
+        manifest: { name: 'PDF++', id: 'pdf-plus', version: '0.0.0-test', dir: '.obsidian/plugins/pdf-plus' },
         settings: {
             author: options.author ?? 'Test Author',
+            skimModel: options.skimModel ?? 'test-model',
+            skimDensityPercent: options.skimDensityPercent ?? 18,
+            skimReadingGoal: options.skimReadingGoal ?? '',
             writeHighlightToFileOpacity: options.writeHighlightToFileOpacity ?? 0.2,
             pdfLinkColor: options.pdfLinkColor ?? '#04a802',
             pdfLinkBorder: options.pdfLinkBorder ?? false,

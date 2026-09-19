@@ -62,7 +62,17 @@ export class SkimController extends PDFPlusComponent {
         });
 
         this.registerEvent(this.app.vault.on('modify', (file) => {
-            if (file === this.file) this.reset();
+            if (file !== this.file) return;
+
+            // A PDF++ annotation write changes the file without moving a character of
+            // any page, so every mark on screen is still correct. Resetting would clear
+            // them and re-queue analysis for nothing - and the re-queue is what made
+            // highlighting cost LLM calls. Deliberately not gated on
+            // `deferReloadOnSelfEdit`: that setting decides whether the viewer reloads,
+            // this decides whether the text changed.
+            if (this.plugin.selfWrites.isSelfWrite(file.path)) return;
+
+            this.reset();
         }));
     }
 
@@ -163,8 +173,15 @@ export class SkimController extends PDFPlusComponent {
 
         this.setState(pageNumber, 'working');
 
+        // The cache is addressed by the page's text, so the text has to come first.
+        // This is a local PDF.js call with no network, and the path that actually
+        // calls the model needed it anyway.
+        const page = await doc.getPage(pageNumber);
+        const content = await page.getTextContent();
+        const pageText = PageText.fromItems(content.items as TextContentItem[]);
+
         await this.cache.load(file);
-        const cached = this.cache.get(file, pageNumber);
+        const cached = this.cache.get(file, pageNumber, pageText.text);
         if (cached) {
             this.results.set(pageNumber, cached);
             this.setState(pageNumber, 'ready');
@@ -172,9 +189,6 @@ export class SkimController extends PDFPlusComponent {
             return;
         }
 
-        const page = await doc.getPage(pageNumber);
-        const content = await page.getTextContent();
-        const pageText = PageText.fromItems(content.items as TextContentItem[]);
         if (pageText.countWords() < 20) {
             // A page with almost no text, such as a full-page figure. Nothing to mark.
             this.results.set(pageNumber, { gist: '', spans: [] });
@@ -195,7 +209,7 @@ export class SkimController extends PDFPlusComponent {
         this.lastGist = result.gist;
         this.results.set(pageNumber, result);
         this.setState(pageNumber, 'ready');
-        await this.cache.set(file, pageNumber, result);
+        await this.cache.set(file, pageNumber, pageText.text, result);
         this.draw(pageNumber);
     }
 
