@@ -114,13 +114,47 @@ async function inspectViewer() {
     return await browser.executeObsidian(({ app }) => {
         const view: any = app.workspace.getLeavesOfType('pdf')[0].view;
         const child = view.viewer.child;
+
+        // Counting elements is not enough: a mark whose `background-color` fails to
+        // parse is still in the DOM, still has a box, and is completely invisible.
+        // So report what the mark actually paints, straight from the renderer.
+        const markEl = child.containerEl.querySelector('.pdf-plus-pending-annotation');
+        let mark = null;
+        if (markEl) {
+            const style = getComputedStyle(markEl);
+            const box = markEl.getBoundingClientRect();
+            mark = {
+                backgroundColor: style.backgroundColor,
+                borderBottom: style.borderBottomWidth + ' ' + style.borderBottomColor,
+                opacity: style.opacity,
+                visibility: style.visibility,
+                display: style.display,
+                width: Math.round(box.width),
+                height: Math.round(box.height),
+            };
+        }
+
         return {
             childStamp: child.__e2eStamp ?? null,
             documentStamp: child.pdfViewer?.pdfLoadingTask?.__e2eStamp ?? null,
             pendingCount: child.pendingAnnotations?.size ?? -1,
             overlayCount: child.containerEl.querySelectorAll('.pdf-plus-pending-annotation').length,
+            mark,
         };
     });
+}
+
+/**
+ * The alpha a colour actually paints with, or 0 if the renderer discarded it.
+ *
+ * `getComputedStyle` returns the empty string or `rgba(0, 0, 0, 0)` for a declaration
+ * the parser rejected, which is exactly what an invisible highlight looks like.
+ */
+function paintedAlpha(color: string | undefined): number {
+    if (!color) return 0;
+    const parts = color.match(/[\d.]+/g);
+    if (!parts || parts.length < 3) return 0;
+    return parts.length >= 4 ? Number(parts[3]) : 1;
 }
 
 async function annotationsInFile(): Promise<PDFDict[]> {
@@ -151,6 +185,13 @@ async function restorePristinePdf() {
 
 describe('highlighting a PDF inside Obsidian', function () {
     before(async function () {
+        // Report the app version from inside the running app. The reporter's header
+        // echoes the requested `browserVersion`, so it still says 1.13.7 when
+        // OBSIDIAN_APP_PATH loads a different app - which makes it easy to believe a
+        // version was covered when it was not.
+        const apiVersion = await browser.executeObsidian(({ obsidian }: any) => obsidian?.apiVersion ?? 'unknown');
+        console.log(`Obsidian app actually under test: ${apiVersion}`);
+
         await setSettings({
             enablePDFEdit: true,
             author: 'E2E',
@@ -195,6 +236,26 @@ describe('highlighting a PDF inside Obsidian', function () {
         const annots = await annotationsInFile();
         expect(annots).toHaveLength(1);
         expect(annots[0].get(PDFName.of('Subtype'))).toBe(PDFName.of('Highlight'));
+    });
+
+    // The whole point of not reloading is that the reader sees the highlight anyway.
+    // Without this, the suite is satisfied by a mark that is present and invisible -
+    // which is worse than the reload it replaced, because the annotation is simply
+    // missing until something forces a reload.
+    it('paints the mark so the reader can actually see it', async function () {
+        await highlightALine();
+        await browser.pause(1000);
+
+        const { mark } = await inspectViewer();
+        expect(mark).not.toBe(null);
+
+        // A real box, on screen, that paints a visible colour.
+        expect(mark!.width).toBeGreaterThan(0);
+        expect(mark!.height).toBeGreaterThan(0);
+        expect(mark!.visibility).toBe('visible');
+        expect(mark!.display).not.toBe('none');
+        expect(Number(mark!.opacity)).toBeGreaterThan(0);
+        expect(paintedAlpha(mark!.backgroundColor)).toBeGreaterThan(0);
     });
 
     // Proves the stamp can actually go missing. Without this, every "no reload"

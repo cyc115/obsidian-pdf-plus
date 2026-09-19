@@ -777,7 +777,10 @@ body.pdf-plus-vim-hint-inverted {
 }
 
 .pdf-plus-pending-annotation-layer .pdf-plus-pending-annotation[data-subtype="Highlight"] {
-    background-color: rgb(var(--pdf-plus-pending-annotation-color) / var(--pdf-plus-pending-annotation-opacity));
+    /* The colour is a comma-separated "R, G, B" triple, so the alpha is passed the
+       legacy way too. Slash alpha is only valid after space-separated components:
+       `rgb(255, 208, 0 / 0.2)` does not parse, and the mark renders transparent. */
+    background-color: rgba(var(--pdf-plus-pending-annotation-color), var(--pdf-plus-pending-annotation-opacity));
     mix-blend-mode: multiply;
 }
 

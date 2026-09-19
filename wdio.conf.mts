@@ -33,6 +33,11 @@ export const config: WebdriverIO.Config = {
         browserVersion: process.env.OBSIDIAN_VERSION ?? 'latest',
         'wdio:obsidianOptions': {
             installerVersion: process.env.OBSIDIAN_INSTALLER_VERSION ?? 'latest',
+            // An insider build cannot be downloaded without credentials, but one that
+            // is already installed can be loaded straight from its asar - which is how
+            // to test against 1.14 locally:
+            //   OBSIDIAN_APP_PATH="$HOME/Library/Application Support/obsidian/obsidian-1.14.2.asar" pnpm test:e2e
+            ...(process.env.OBSIDIAN_APP_PATH ? { appPath: process.env.OBSIDIAN_APP_PATH } : {}),
             // Installs this repo's built plugin (manifest.json + main.js + styles.css).
             // Run a build first - the e2e suite tests the bundle, not the sources.
             plugins: ['.'],
