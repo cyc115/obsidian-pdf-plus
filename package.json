@@ -1,6 +1,6 @@
 {
     "name": "obsidian-pdf-plus",
-    "version": "0.41.0-skim.1",
+    "version": "0.41.0-skim.2",
     "description": "The most Obsidian-native PDF annotation tool ever.",
     "scripts": {
         "dev": "node esbuild.config.mjs",
