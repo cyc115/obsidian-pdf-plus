@@ -27,3 +27,6 @@ anystyle/
 # End-to-end tests: downloaded Obsidian builds and WDIO output
 .obsidian-cache/
 logs/
+
+# Serena's per-project index and memories: local tooling state, not the project's
+.serena/
